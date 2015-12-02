@@ -138,18 +138,38 @@ def decrypt(N, d, p, q, cipher_text, L = ""):
          return -1
 
      c = OS2IP(cipher_text)
-
      m = RSADP(N, d, c)
-
-     EM = I2OSP(m, k)
-
-     if EM[0] != chr(0) or EM[1] != chr(1): # TODO again chr(0)
-         print "decryption error"
+     if m == -1:
          return -1
+     EM = I2OSP(m, k)
+     
+     lHash = utils.generateHash(L, 1)
+     hLen = len(lHash)
 
-     pos = EM.find(chr(0), 2) ## TODO -> this seeks 0 after 2nd position, to find M
+     maskedSeed = ""
+     for i in range(hLen):
+         maskedSeed += EM[1 + i]
 
-     message = EM[pos:]
+     maskedDB = EM[hLen + 1:]
+     seedMask = NGF(maskedDB, hLen)
+     seed = maskedSeed ^ seedMask
+     dbMask = MGF(seed, k - hLen - 1)
+     DB = maskedDB ^ dbMask
+
+     state = False
+     message = ""
+     for i in range(len(DB) - hLen):
+         if DB[hLen + i] == 0:
+             continue
+         elif DB[hLen + i] == 1:
+             state = True
+
+         if state:
+             message += DB[hLen + i]
+
+     if state == False:
+         print "Decryption error"
+         return -1
 
      return message
 

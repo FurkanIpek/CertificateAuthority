@@ -2,10 +2,6 @@
 import utils
 import RSA
 
-from binascii import unhexlify
-
-from Crypto.Hash import SHA256
-
 if __name__ == "__main__":
     message = "Hey there! The angel from my nightmare!"
 
