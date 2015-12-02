@@ -10,4 +10,4 @@ The project has three phases:
 	* Developing the protocol for certificate generation and delivery
 	* Developing a public key cryptography application
 
-Note: CryptoPy 2.6.1 is used in utils.py
+Note: CryptoPy 2.6.1 is used for AES, DES3, and some SHA variants
