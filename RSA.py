@@ -174,9 +174,9 @@ def decrypt(N, d, p, q, cipher_text, L = ""):
      return message
 
 
-def generateSignature():
+def generateSignature(): # TODO
      print "TODO"
 
 
-def verifySignature():
+def verifySignature(): # TODO
      print "TODO"
