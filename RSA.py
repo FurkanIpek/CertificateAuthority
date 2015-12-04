@@ -192,17 +192,17 @@ def EMSAPSSENC(M, emBits, sLen = 16):
         return
     
     salt = I2OSP(utils.gen_random(sLen * 8), sLen)
-    m_prime = ''.join(('\x00' * 8, mHash, salt))
+    m_prime = '\x00' * 8 + mHash + salt
     H = SHA.new(m_prime).digest()
     PS = '\x00' * (emLen - sLen - hLen - 2)
-    DB = ''.join((PS, '\x01', salt))
+    DB = PS + '\x01' + salt
     dbMask = MGF(H, emLen - hLen - 1)
     maskedDB = stringXOR(DB, dbMask)
     octets, bits = (8 * emLen - emBits) / 8, (8 * emLen - emBits) % 8
     maskedDB = ('\x00' * octets) + maskedDB[octets:]
     newByte = chr(ord(maskedDB[octets]) & (255 >> bits))
     maskedDB = maskedDB[:octets] + newByte + maskedDB[octets+1:]
-    EM = ''.join((maskedDB, H, '\xbc'))
+    EM = maskedDB + H + '\xbc'
 
     return EM
 
@@ -214,7 +214,6 @@ def RSASP1(N, d, m):
     return utils.mod_exp(m, d, N)
 
 def bitSize(n):
-    '''Returns the number of bits necessary to store the integer n.'''
     if n == 0:
         return 1
     s = 0
@@ -249,7 +248,7 @@ def EMSAPSSVER(M, EM, emBits, sLen = 16):
         print "Inconsistent"
         return False
 
-    maskedDB, h = EM[:emLen - hLen - 1], EM[emLen - hLen: -1]
+    maskedDB, h = EM[:emLen - hLen - 1], EM[emLen - hLen - 1: -1]
 
     octets, bits = (8 * emLen - emBits) / 8, (8 * emLen - emBits) % 8
     zero = maskedDB[:octets] + chr(ord(maskedDB[octets]) & ~(255 >>bits))
@@ -278,7 +277,6 @@ def EMSAPSSVER(M, EM, emBits, sLen = 16):
 
 def verifySignature(N, e, message, signature):
     k = numOctets(N)
-    #modBits = k * 8
     modBits = bitSize(N)
 
     if len(signature) != k:

@@ -16,6 +16,8 @@ if __name__ == "__main__":
 
     #e, N, d, p, q, cipher_text = keys[0], keys[1], keys[2], keys[3], keys[4], keys[5]
 
+    ### TODO from test vector, read hex input. Then unhexlify it and send to the CryptoBox
+
     #print CryptoBox.RSAdecryption(N, d, p, q, cipher_text)
 
     keys = CryptoBox.RSAGenerateSignature(message, 1)
@@ -25,3 +27,9 @@ if __name__ == "__main__":
     print CryptoBox.RSAVerifySignature(N, e, message, signature)
 
     ## TODO signature gen - ver does not work
+
+    #keys = CryptoBox.DSAGenerateSignature("111", 1)
+    ##p, q, g, s, h, r, t = keys[0], keys[1], keys[2], keys[3], keys[4], keys[5], keys[6]
+    #p, q, g, s, h, a, b = keys[0], keys[1], keys[2], keys[3], keys[4], keys[5], keys[6]
+
+    #print CryptoBox.DSAVerifySignature(p, q, g, h, a, b, message)

@@ -21,7 +21,6 @@ def generateHash(str, sec_level = 1):
     hasher.update(str)
     hash = hasher.digest()
 
-    #return hexlify(hash)
     return hash
 
 
@@ -105,17 +104,32 @@ def RSAVerifySignature(N, e, message, signature):
     return RSA.verifySignature(N, e, message, signature)
 
 
-def ElGamalEncryption(message): # TODO
-    return ElGamal.encrypt(message)
+def ElGamalEncryption(message, security_level):
+    keys = ElGamal.generateKeys(security_level)
+    p, q, g, s, h = keys[0], keys[1], keys[2], keys[3], keys[4]
+
+    cipher = ElGamal.encrypt(p, q, g, s, message)
+    r, t = cipher[0], cipher[1]
+
+    return p, q, g, s, h, r, t
 
 
-def ElGamalDecryption(cipher_text): # TODO
-    return ElGamal.decrypt(cipher_text)
+def ElGamalDecryption(p, q, s, r, t):
+
+    return ElGamal.decrypt(p, q, s, r, t)
 
 
-def DSAGenerateSignature(): # TODO
-    return DSA.generateSignature()
+def DSAGenerateSignature(message, security_level):
+    # ElGamal and DSA uses the same key generation algorithm
+    keys = ElGamal.generateKeys(security_level)
+    p, q, g, s, h = keys[0], keys[1], keys[2], keys[3], keys[4]
+
+    sign = DSA.generateSignature(p, q, g, s, message)
+    a, b = sign[0], sign[1]
+
+    return p, q, g, s, h, a, b
     
 
-def DSAVerifySignature(signature): # TODO
-    return DSA.verifySignature(signature)
+def DSAVerifySignature(p, q, g, h, a, b, message):
+
+    return DSA.verifySignature(p, q, g, h, a, b, message)
