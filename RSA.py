@@ -1,18 +1,42 @@
-﻿import utils
+﻿import utils, CryptoBox
 
+from binascii import b2a_hex, hexlify, unhexlify
+from os import urandom
 from random import randint
 from fractions import gcd
 
-def generateKeys(security_level): ## TODO sec_level & how to generate keys?
-    p = utils.gen_random(512)
+from Crypto.Util import number
+from Crypto.Hash import SHA
 
-    while utils.rm_primality(p) == False:
-        p = utils.gen_random(512)
+def generateKeys(security_level = 1):
+    bit_count = None
 
-    q = utils.gen_random(512)
+    if security_level == 1:
+        bit_count = 1024 / 2
+    elif security_level == 2:
+        bit_count = 2048 / 2
+    elif security_level == 3:
+        bit_count = 3072 / 2
 
-    while utils.rm_primality(p) == False:
-        q = utils.gen_random(512)
+    p, q = number.getPrime(bit_count), number.getPrime(bit_count)
+
+    #p = utils.gen_random(bit_count)
+    #count = 3 # test primality thrice
+
+    #while utils.rm_primality(p) == False or (utils.rm_primality(p) == True and count != 0):
+    #    p = utils.gen_random(bit_count)
+
+    #    if utils.rm_primality(p) == True:
+    #        count -= 1
+
+    #q = utils.gen_random(bit_count)
+    #count = 3 # test primality thrice
+
+    #while utils.rm_primality(q) == False or (utils.rm_primality(q) == True and count != 0):
+    #    q = utils.gen_random(bit_count)
+
+    #    if utils.rm_primality(q) == True:
+    #        count -= 1
 
     N = p * q
 
@@ -27,89 +51,86 @@ def generateKeys(security_level): ## TODO sec_level & how to generate keys?
 
     return e, N, d, p, q
 
-def OS2IP(str): # TODO
-    length = len(str)
-    value = 0
+def OS2IP(str):
+    value = hexlify(str)
 
-    for i in range(length):
-        value += int(str[i]) * pow(256, i)
-
-    return value
-
+    return int(value, 16)
 
 def RSAEP(N, e, m):
-    if m < 0 or m > n - 1:
+    if m < 0 or m > N - 1:
         print "Message representative out of range!"
         return -1
 
-    c = utils.mod_exp(m, e, N)
+    return utils.mod_exp(m, e, N)
 
-    return c
-
-
-def I2OSP(x, xLen): #TODO
+def I2OSP(x, xLen):
     if x >= pow(256, xLen):
         print "Integer too large"
-        return -1
+        return ''
 
-    arr = [ 0 for i in range(xLen) ]
+    h = hex(x)[2:]
+    if h[-1] == 'L': # remove trailing L
+        h = h[:-1]
 
-    for i in range(xLen):
-        arr[i] = x / pow(256, xLen-i)
+    if len(h) & 1 == 1: # make the length even for unhexlify function
+        h = '0' + h
 
-    output = ""
-
-    for i in range(xLen):
-        output += str(arr[i])
-
-    return output
-
+    x = unhexlify(h)
+    
+    return '\x00' * int(xLen-len(x)) + x
 
 def MGF(mgfSeed, maskLen):
-    if maskLen > pow(2, 32):
+    hLen = len(SHA.new("").digest())
+    if maskLen > pow(2, 32) * hLen:
         print "Mask too long"
-        return
+        return -1
 
-    hLen = len(utils.generateHash("length", 1))
     T = ""
 
-    for i in range(maskLen/hLen - 1):
+    for i in range(utils.ceil(maskLen, hLen)):
         C = I2OSP(i, 4)
-        T += utils.generateHash(mgfSeed + C)
+        T += CryptoBox.generateHash(mgfSeed + C)
 
-    output = ""
+    return T[:maskLen]
 
-    for i in range(maskLen):
-        output += T[i]
+def stringXOR(a, b):
 
-    return output
+    return ''.join((chr(ord(x) ^ ord(y)) for (x,y) in zip(a,b)))
 
+def numOctets(x):
+    ctr = 0
+
+    while x > 1:
+        x = x / 256
+        ctr += 1
+
+    return ctr
 
 def encrypt(N, e, message, security_level, L = ""):
-    lHash = utils.generateHash(L, 1) # TODO lHash = hash(L)
+    lHash = CryptoBox.generateHash(L, 1)
     hLen = len(lHash)
     mLen = len(message)
-    k = len(str(N())) # TODO check correctness # k = octet length of modulus N
+    k = numOctets(N)
 
-    PS = ""
-    for i in range(k - mLen - 2*hLen - 2):
-        PS += "0"
+    if mLen > k - (2*hLen) - 2:
+        print "Message too long"
+        return -1
 
-    DB = lHash + PS + chr(1) + message # TODO 0x01 == chr(1) ?
+    lPS = (k - mLen - 2*hLen - 2)
+    PS = '\x00' * lPS
+    DB = ''.join((lHash, PS, '\x01', message))
 
-    seed = ""
-    for i in range(hLen):
-        seed += chr(randint(0, 255))
+    seed = I2OSP(utils.gen_random(hLen * 8), hLen)
 
-    dbMask = MGF(seed, k - hLenn - 1)
-    maskedDB = DB ^ dbMask
+    dbMask = MGF(seed, k - hLen - 1)
+    maskedDB = stringXOR(DB, dbMask)
 
     seedMask = MGF(maskedDB, hLen)
-    maskedSeed = seed ^ seedMask
+    maskedSeed = stringXOR(seed, seedMask)
 
-    encryptedMessage = chr(0) + maskedSeed + maskedDB # TODO 0x00 == chr(0) ?
+    EM = ''.join(('\x00', maskedSeed, maskedDB))
 
-    m = OS2IP(encryptedMessage)
+    m = OS2IP(EM)
 
     c = RSAEP(N, e, m)
 
@@ -117,66 +138,156 @@ def encrypt(N, e, message, security_level, L = ""):
 
     return cipherText
 
-
-
 def RSADP(N, d, c):
-    if c < 0 or c > n - 1:
+    if c < 0 or c > N - 1:
         print "Ciphertext representative out of range"
-        return -1
+        return
 
-    m = utils.mod_exp(c, d, N)
-
-    return m
-
+    return utils.mod_exp(c, d, N)
 
 def decrypt(N, d, p, q, cipher_text, L = ""):
-     k = len(str(N))
-     hLen = len(utils.generateHash("length", 1))
+     k = numOctets(N)
+     lHash = CryptoBox.generateHash(L, 1)
+     hLen = len(lHash)
 
      if k != len(cipher_text) or k < 2*hLen + 2:
          print "Decryption error"
-         return -1
+         return
 
      c = OS2IP(cipher_text)
      m = RSADP(N, d, c)
      if m == -1:
          return -1
      EM = I2OSP(m, k)
-     
-     lHash = utils.generateHash(L, 1)
-     hLen = len(lHash)
 
-     maskedSeed = ""
-     for i in range(hLen):
-         maskedSeed += EM[1 + i]
-
-     maskedDB = EM[hLen + 1:]
-     seedMask = NGF(maskedDB, hLen)
-     seed = maskedSeed ^ seedMask
-     dbMask = MGF(seed, k - hLen - 1)
-     DB = maskedDB ^ dbMask
-
-     state = False
-     message = ""
-     for i in range(len(DB) - hLen):
-         if DB[hLen + i] == 0:
-             continue
-         elif DB[hLen + i] == 1:
-             state = True
-
-         if state:
-             message += DB[hLen + i]
-
-     if state == False:
+     if EM[0] != '\x00':
          print "Decryption error"
-         return -1
+         return
 
-     return message
+     maskedSeed = EM[1:hLen + 1]
+     maskedDB = EM[hLen + 1:]
+     seedMask = MGF(maskedDB, hLen)
+     seed = stringXOR(maskedSeed, seedMask)
+     dbMask = MGF(seed, k - hLen - 1)
+     DB = stringXOR(maskedDB, dbMask)
 
+     oldHash = DB[:hLen]
+     rest = DB[hLen:]
+     i = rest.find('\x01')
+     m = rest[i+1:]
 
-def generateSignature(): # TODO
-     print "TODO"
+     if oldHash != lHash or i == -1 or rest[:i].strip('\x00') != '':
+         print "Decryption error"
+         return
 
+     return m
 
-def verifySignature(): # TODO
-     print "TODO"
+def EMSAPSSENC(M, emBits, sLen = 16):
+    mHash = SHA.new(M).digest()
+    hLen = len(mHash)
+    emLen = utils.ceil(emBits, 8)
+    
+    if emLen < hLen + sLen + 2:
+        print "Encoding error"
+        return
+    
+    salt = I2OSP(utils.gen_random(sLen * 8), sLen)
+    m_prime = ''.join(('\x00' * 8, mHash, salt))
+    H = SHA.new(m_prime).digest()
+    PS = '\x00' * (emLen - sLen - hLen - 2)
+    DB = ''.join((PS, '\x01', salt))
+    dbMask = MGF(H, emLen - hLen - 1)
+    maskedDB = stringXOR(DB, dbMask)
+    octets, bits = (8 * emLen - emBits) / 8, (8 * emLen - emBits) % 8
+    maskedDB = ('\x00' * octets) + maskedDB[octets:]
+    newByte = chr(ord(maskedDB[octets]) & (255 >> bits))
+    maskedDB = maskedDB[:octets] + newByte + maskedDB[octets+1:]
+    EM = ''.join((maskedDB, H, '\xbc'))
+
+    return EM
+
+def RSASP1(N, d, m):
+    if m < 0 or m > N - 1:
+        print "Message representative out of range"
+        return
+
+    return utils.mod_exp(m, d, N)
+
+def bitSize(n):
+    '''Returns the number of bits necessary to store the integer n.'''
+    if n == 0:
+        return 1
+    s = 0
+    while n:
+        s += 1
+        n >>= 1
+    return s
+
+def generateSignature(N, d, message):
+    k = numOctets(N)
+    modBits = bitSize(N)
+    EM = EMSAPSSENC(message, modBits - 1)
+    m = OS2IP(EM)
+    s = RSASP1(N, d, m)
+    S = I2OSP(s, k)
+    
+    return S
+
+def RSAVP1(N, e, s):
+    if s < 0 or s > N - 1:
+        print "Signature representative out of range"
+        return
+
+    return utils.mod_exp(s, e, N)
+
+def EMSAPSSVER(M, EM, emBits, sLen = 16):
+    mHash = SHA.new(M).digest()
+    hLen = len(mHash)
+    emLen = utils.ceil(emBits, 8)
+
+    if emLen < hLen + sLen + 2 or EM[len(EM) - 1] != '\xbc':
+        print "Inconsistent"
+        return False
+
+    maskedDB, h = EM[:emLen - hLen - 1], EM[emLen - hLen: -1]
+
+    octets, bits = (8 * emLen - emBits) / 8, (8 * emLen - emBits) % 8
+    zero = maskedDB[:octets] + chr(ord(maskedDB[octets]) & ~(255 >>bits))
+
+    for c in zero:
+        if c != '\x00':
+            return False
+
+    dbMask = MGF(h, emLen - hLen - 1)
+    DB = stringXOR(maskedDB, dbMask)
+    newByte = chr(ord(DB[octets]) & (255 >> bits))
+    DB = ('\x00' * octets) + newByte + DB[octets+1:]
+
+    for c in DB[:emLen - hLen - sLen - 2]:
+        if c != '\x00':
+            return False
+
+    if DB[emLen - hLen - sLen - 2] != '\x01':
+        return False
+
+    salt = DB[-sLen:]
+    m_prime = ('\x00' * 8) + mHash + salt
+    h_prime = SHA.new(m_prime).digest()
+
+    return h_prime == h
+
+def verifySignature(N, e, message, signature):
+    k = numOctets(N)
+    #modBits = k * 8
+    modBits = bitSize(N)
+
+    if len(signature) != k:
+        print "Invalid signature"
+        return
+
+    s = OS2IP(signature)
+    m = RSAVP1(N, e, s)
+    emLen = utils.ceil((modBits -1), 8)
+    EM = I2OSP(m, emLen)
+    
+    return EMSAPSSVER(message, EM, modBits - 1)

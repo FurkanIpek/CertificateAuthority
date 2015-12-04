@@ -1,5 +1,5 @@
 ﻿import random
-import sys        
+import sys
 
 ## Taken from wikipedia, develops rabin-miller primality test
 def rm_primality(n, k = 7):
@@ -27,6 +27,7 @@ def rm_primality(n, k = 7):
       return True  # probably prime if reached end of outer loop
 
 
+## Generates a string num_bits/8 bytes long
 def generateKey(num_bits):
     key = ""
 
@@ -41,9 +42,21 @@ def generateKey(num_bits):
     return key
 
 
-## Generates random number which is n bits long
+## Generates random bits
 def gen_random(bits):
-    return abs(long(random.getrandbits(bits)))
+    if bits > 0:
+        return random.getrandbits(bits)
+    else:
+        return ''
+
+
+def ceil(a, b):
+    r = a / b
+
+    if a > r * b:
+        r += 1
+
+    return r
 
 
 ## Modular expontiation: returns a**x % N
