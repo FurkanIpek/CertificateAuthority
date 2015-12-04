@@ -1,11 +1,13 @@
-﻿import random, utils, RSA, ElGamal, DSA
+﻿## NOTE if your inputs are in hexadecimal format,
+## unhexlify them before using them as input for any of
+## the following functions
+
+import random, utils, RSA, ElGamal, DSA
 
 from Crypto.Hash import SHA256, SHA384, SHA512
 from Crypto.Cipher import AES, DES3
 from Crypto import Random
 from Crypto.Util import Counter
-
-from binascii import unhexlify, hexlify
 
 def generateHash(str, sec_level = 1):
     hasher = None
@@ -42,7 +44,10 @@ def AESencryption(message, sec_level = 1):
     iv = Random.new().read(AES.block_size)
     
     aes = AES.new(key, AES.MODE_CBC, iv)
-
+    # pad message with 0 to get multiples of 16 in length
+    lPS = 16 - (len(message) % 16)
+    message = message + '\0' * lPS
+    
     cipher_text = aes.encrypt(message)
 
     return key, cipher_text, iv
@@ -57,11 +62,13 @@ def AESdecryption(key, cipher_text, iv):
 
 
 def DES3encryption(message):
-    key = generateKey(16*8)
-    iv = generateKey(8*8)
+    key = utils.generateKey(16*8)
+    iv = utils.generateKey(8*8)
 
     des3 = DES3.new(key, DES3.MODE_CBC, iv)
-
+    # pad message with 0 to get multiples of 8 in length
+    lPS = 8 - (len(message) % 8)
+    message = message + '\0' * lPS
     cipher_text = des3.encrypt(message)
 
     return key, cipher_text, iv
