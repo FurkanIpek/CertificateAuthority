@@ -78,7 +78,7 @@ def DES3decryption(key, cipher_text, iv):
 def RSAencryption(message, security_level = 1):
     keys = RSA.generateKeys(security_level)
     e, N, d, p, q = keys[0], keys[1], keys[2], keys[3], keys[4]
-
+    # d = private key   e = public key
     cipher_text = RSA.encrypt(N, e, message, security_level, "")
 
     return e, N, d, p, q, cipher_text
@@ -89,11 +89,10 @@ def RSAdecryption(N, d, p, q, cipher_text):
     return RSA.decrypt(N, d, p, q, cipher_text, "")
 
 
-# d = private key
 def RSAGenerateSignature(message, security_level = 1):
     keys = RSA.generateKeys(security_level)
     e, N, d, p, q = keys[0], keys[1], keys[2], keys[3], keys[4]
-
+    # d = private key   e = public key
     signature = RSA.generateSignature(N, d, message)
 
     return e, N, d, p, q, signature
@@ -106,30 +105,30 @@ def RSAVerifySignature(N, e, message, signature):
 
 def ElGamalEncryption(message, security_level):
     keys = ElGamal.generateKeys(security_level)
-    p, q, g, s, h = keys[0], keys[1], keys[2], keys[3], keys[4]
-
-    cipher = ElGamal.encrypt(p, q, g, s, message)
+    p, q, g, x, y = keys[0], keys[1], keys[2], keys[3], keys[4]
+    # x = private key   y = public key
+    cipher = ElGamal.encrypt(p, q, g, y, message)
     r, t = cipher[0], cipher[1]
 
-    return p, q, g, s, h, r, t
+    return p, q, g, x, y, r, t
 
 
-def ElGamalDecryption(p, q, s, r, t):
+def ElGamalDecryption(p, q, x, r, t):
 
-    return ElGamal.decrypt(p, q, s, r, t)
+    return ElGamal.decrypt(p, q, x, r, t)
 
 
 def DSAGenerateSignature(message, security_level):
     # ElGamal and DSA uses the same key generation algorithm
     keys = ElGamal.generateKeys(security_level)
-    p, q, g, s, h = keys[0], keys[1], keys[2], keys[3], keys[4]
+    p, q, g, x, y = keys[0], keys[1], keys[2], keys[3], keys[4]
+    # x = private key   y = public key
+    sign = DSA.generateSignature(p, q, g, x, message)
+    r, s = sign[0], sign[1]
 
-    sign = DSA.generateSignature(p, q, g, s, message)
-    a, b = sign[0], sign[1]
-
-    return p, q, g, s, h, a, b
+    return p, q, g, x, y, r, s
     
 
-def DSAVerifySignature(p, q, g, h, a, b, message):
+def DSAVerifySignature(p, q, g, y, r, s, message):
 
-    return DSA.verifySignature(p, q, g, h, a, b, message)
+    return DSA.verifySignature(p, q, g, y, r, s, message)

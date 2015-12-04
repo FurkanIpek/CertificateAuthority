@@ -28,22 +28,22 @@ def generateKeys(security_level = 1):
         a = number.getRandomRange(0, p)
         g = utils.mod_exp(a, (p - 1) / q, p)
 
-    s = number.getRandomRange(1, q - 2)
-    h = utils.mod_exp(g, s, p)
+    x = number.getRandomRange(1, q - 2)
+    y = utils.mod_exp(g, x, p)
 
-    return p, q, g, s, h
+    return p, q, g, x, y
 
 
-def encrypt(p, q, g, h, message):
+def encrypt(p, q, g, y, message):
     k = number.getRandomRange(1, p - 2)
     r = utils.mod_exp(g, k, p)
-    t = utils.mod_exp(utils.mod_exp(h, k, p) * message, 1, p)
+    t = (utils.mod_exp(y, k, p) * message) % p
 
     return r, t
 
 
-def decrypt(p, q, s, r, t):
-    k = utils.inverse(utils.mod_exp(r, s, p), p)
-    message = utils.mod_exp(t * k, 1, p)
+def decrypt(p, q, x, r, t):
+    k = utils.inverse(utils.mod_exp(r, x, p), p)
+    message = (t * k) % p
 
     return message
