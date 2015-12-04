@@ -106,8 +106,8 @@ def numOctets(x):
 
     return ctr
 
-def encrypt(N, e, message, security_level, L = ""):
-    lHash = CryptoBox.generateHash(L, 1)
+def encrypt(N, e, message, L = ""):
+    lHash = SHA.new(L).digest()
     hLen = len(lHash)
     mLen = len(message)
     k = numOctets(N)
@@ -147,7 +147,7 @@ def RSADP(N, d, c):
 
 def decrypt(N, d, p, q, cipher_text, L = ""):
      k = numOctets(N)
-     lHash = CryptoBox.generateHash(L, 1)
+     lHash = SHA.new(L).digest()
      hLen = len(lHash)
 
      if k != len(cipher_text) or k < 2*hLen + 2:

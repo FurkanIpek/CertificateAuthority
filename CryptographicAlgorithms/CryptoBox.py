@@ -75,27 +75,26 @@ def DES3decryption(key, cipher_text, iv):
     return message
 
 
-def RSAencryption(message, security_level = 1):
+def RSAKeyGeneration(security_level):
     keys = RSA.generateKeys(security_level)
     e, N, d, p, q = keys[0], keys[1], keys[2], keys[3], keys[4]
-    # d = private key   e = public key
-    cipher_text = RSA.encrypt(N, e, message, security_level, "")
 
-    return e, N, d, p, q, cipher_text
+    return e, N, d, p, q
 
 
-def RSAdecryption(N, d, p, q, cipher_text):
+def RSAencryption(N, e, message, L):
+    
+    return RSA.encrypt(N, e, message, L)
+
+
+def RSAdecryption(N, d, p, q, cipher_text, L):
    
-    return RSA.decrypt(N, d, p, q, cipher_text, "")
+    return RSA.decrypt(N, d, p, q, cipher_text, L)
 
 
-def RSAGenerateSignature(message, security_level = 1):
-    keys = RSA.generateKeys(security_level)
-    e, N, d, p, q = keys[0], keys[1], keys[2], keys[3], keys[4]
-    # d = private key   e = public key
-    signature = RSA.generateSignature(N, d, message)
+def RSAGenerateSignature(N, d, message):
 
-    return e, N, d, p, q, signature
+    return RSA.generateSignature(N, d, message)
 
 
 def RSAVerifySignature(N, e, message, signature):
@@ -103,14 +102,18 @@ def RSAVerifySignature(N, e, message, signature):
     return RSA.verifySignature(N, e, message, signature)
 
 
-def ElGamalEncryption(message, security_level):
+def ElGamalAndDSAKeyGeneration(security_level):
     keys = ElGamal.generateKeys(security_level)
     p, q, g, x, y = keys[0], keys[1], keys[2], keys[3], keys[4]
     # x = private key   y = public key
+    return p, q, g, x, y
+
+
+def ElGamalEncryption(p, q, g, y, message):
     cipher = ElGamal.encrypt(p, q, g, y, message)
     r, t = cipher[0], cipher[1]
 
-    return p, q, g, x, y, r, t
+    return r, t
 
 
 def ElGamalDecryption(p, q, x, r, t):
@@ -118,15 +121,11 @@ def ElGamalDecryption(p, q, x, r, t):
     return ElGamal.decrypt(p, q, x, r, t)
 
 
-def DSAGenerateSignature(message, security_level):
-    # ElGamal and DSA uses the same key generation algorithm
-    keys = ElGamal.generateKeys(security_level)
-    p, q, g, x, y = keys[0], keys[1], keys[2], keys[3], keys[4]
-    # x = private key   y = public key
+def DSAGenerateSignature(p, q, g, x, message):
     sign = DSA.generateSignature(p, q, g, x, message)
     r, s = sign[0], sign[1]
 
-    return p, q, g, x, y, r, s
+    return r, s
     
 
 def DSAVerifySignature(p, q, g, y, r, s, message):
